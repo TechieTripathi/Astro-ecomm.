@@ -19,7 +19,7 @@ const emptyForm = {
   variantOptions: [],
   highlights: "",
   description: "",
-  stock: "100",
+  stock: "",
   bestseller: false,
   styles: defaultProductStyles,
 };
@@ -322,7 +322,7 @@ export default function AdminProducts() {
         : [],
       highlights: p.highlights ? p.highlights.join("\n") : "",
       description: p.description,
-      stock: String(p.stock || 100),
+      stock: String(p.stock ?? ""),
       bestseller: Boolean(p.bestseller),
       styles: normalizeProductStyles(p.styles),
     });
@@ -396,6 +396,38 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const price = Number(form.price);
+    const mrp = form.mrp === "" ? price : Number(form.mrp);
+    const stock = Number(form.stock);
+
+    if (!Number.isFinite(price) || price < 0) {
+      alert("Price cannot be negative.");
+      return;
+    }
+    if (!Number.isFinite(mrp) || mrp < 0) {
+      alert("MRP cannot be negative.");
+      return;
+    }
+    if (!Number.isInteger(stock) || stock < 0) {
+      alert("Stock must be a non-negative whole number.");
+      return;
+    }
+
+    const invalidVariant = form.variantOptions?.find((option) => {
+      const variantPrice = Number(option.price);
+      const variantMrp = option.mrp === "" ? variantPrice : Number(option.mrp);
+      return (
+        !Number.isFinite(variantPrice) ||
+        variantPrice < 0 ||
+        !Number.isFinite(variantMrp) ||
+        variantMrp < 0
+      );
+    });
+    if (invalidVariant) {
+      alert(`Price and MRP for ${invalidVariant.name} cannot be negative.`);
+      return;
+    }
+
     if (!form.description.trim()) {
       alert("Please enter a product description.");
       return;
@@ -411,9 +443,9 @@ export default function AdminProducts() {
     const categoryName = categories.find((category) => category.id === form.category)?.name || "";
     const payload = {
       ...form,
-      price: Number(form.price),
-      mrp: Number(form.mrp) || Number(form.price),
-      stock: Number(form.stock) || 0,
+      price,
+      mrp,
+      stock,
       bestseller: Boolean(form.bestseller),
       categoryName,
       variants: form.variantOptions && form.variantOptions.length > 0 ? [{ 
@@ -547,7 +579,7 @@ export default function AdminProducts() {
   return (
     <div className="space-y-6 max-w-full">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
+      <div className="admin-compact-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -862,6 +894,8 @@ export default function AdminProducts() {
                 <input
                   required
                   type="number"
+                  min="0"
+                  step="1"
                   placeholder="Stock"
                   value={form.stock}
                   onChange={(e) => setForm({ ...form, stock: e.target.value })}
@@ -872,6 +906,8 @@ export default function AdminProducts() {
                 <input
                   required
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="Price (₹)"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -879,6 +915,8 @@ export default function AdminProducts() {
                 />
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="MRP (₹)"
                   value={form.mrp}
                   onChange={(e) => setForm({ ...form, mrp: e.target.value })}
@@ -887,6 +925,8 @@ export default function AdminProducts() {
                 <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
+                    min="0"
+                    max="99"
                     placeholder="%"
                     value={
                       Number(form.mrp) > Number(form.price) && Number(form.price) > 0
@@ -944,6 +984,8 @@ export default function AdminProducts() {
                         
                         <input
                           type="number"
+                          min="0"
+                          step="0.01"
                           placeholder="Price (₹)"
                           value={opt.price}
                           onChange={(e) => {
@@ -955,6 +997,8 @@ export default function AdminProducts() {
                         />
                         <input
                           type="number"
+                          min="0"
+                          step="0.01"
                           placeholder="MRP (₹)"
                           value={opt.mrp}
                           onChange={(e) => {
@@ -968,6 +1012,8 @@ export default function AdminProducts() {
                         <div className="flex items-center gap-1 shrink-0">
                           <input
                             type="number"
+                            min="0"
+                            max="99"
                             placeholder="%"
                             value={
                               Number(opt.mrp) > Number(opt.price) && Number(opt.price) > 0

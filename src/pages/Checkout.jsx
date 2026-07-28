@@ -6,6 +6,7 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   applyCoupon,
   clearCart,
+  getCouponErrorPresentation,
   removeCoupon,
   selectAppliedCoupon,
   selectCartItems,
@@ -199,7 +200,7 @@ export default function Checkout() {
     if (result.type?.endsWith("/rejected")) {
       setCouponResult({
         valid: false,
-        message: result.payload || "Could not apply coupon.",
+        ...getCouponErrorPresentation(result.payload),
       });
       return;
     }
@@ -502,7 +503,10 @@ export default function Checkout() {
                     </Editable>
                   ) : (
                     <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                      <input value={couponInput} onChange={e => setCouponInput(e.target.value.toUpperCase())}
+                      <input value={couponInput} onChange={e => {
+                        setCouponInput(e.target.value.toUpperCase());
+                        setCouponResult(null);
+                      }}
                         placeholder="Enter coupon code"
                         onKeyDown={e => e.key === "Enter" && handleApplyCoupon()}
                         className="w-full min-w-0 flex-1 border border-gray-300 rounded px-3 py-2 text-sm uppercase focus:outline-brand font-mono" />
@@ -515,7 +519,10 @@ export default function Checkout() {
                   )}
 
                   {couponResult && !couponResult.valid && (
-                    <p className="text-xs text-red-500 mt-1">{couponResult.message}</p>
+                    <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+                      <p className="text-sm font-semibold text-red-700">{couponResult.title}</p>
+                      <p className="mt-0.5 text-xs text-red-600">{couponResult.message}</p>
+                    </div>
                   )}
                   
                   {/* Available Coupons List */}
@@ -537,7 +544,10 @@ export default function Checkout() {
                                 setCouponInput(coupon.couponId);
                                 dispatch(applyCoupon(coupon.couponId)).then((result) => {
                                   if (result.type?.endsWith("/rejected")) {
-                                    setCouponResult({ valid: false, message: result.payload });
+                                    setCouponResult({
+                                      valid: false,
+                                      ...getCouponErrorPresentation(result.payload),
+                                    });
                                   } else {
                                     setCouponResult({ valid: true, message: "Coupon applied successfully" });
                                   }

@@ -1,7 +1,7 @@
 import { Helmet } from "react-helmet-async";
 import { useState, useRef, useEffect } from "react";
 import { useParams, useNavigate, useLocation, Link } from "react-router-dom";
-import { ShieldCheck, Truck, RotateCcw, ChevronRight, Check, Lock, Star, MapPin, Loader2, Heart, Share2, MessageCircle, Link2, X, ZoomIn, ImagePlus } from "lucide-react";
+import { ShieldCheck, Truck, RotateCcw, ChevronRight, Check, Lock, Star, MapPin, Loader2, Heart, Share2, MessageCircle, Link2, X, ZoomIn, ImagePlus, PackageOpen } from "lucide-react";
 import { normalizeProductStyles, selectProductById, selectProductsByCategory, selectProductsLoading } from "../store/productsSlice";
 import { selectCategoryById } from "../store/categoriesSlice";
 import { useDispatch, useSelector } from "react-redux";
@@ -41,6 +41,8 @@ const fontWeightMap = {
   semibold: 600,
   bold: 700,
 };
+
+const LOW_STOCK_THRESHOLD = 10;
 
 const toTextStyle = (style = {}) => ({
   fontFamily: fontFamilyMap[style.fontFamily],
@@ -179,8 +181,12 @@ export default function ProductDetail() {
   const displayMrp = selectedSizeOpt && selectedSizeOpt.mrp ? selectedSizeOpt.mrp : product.mrp;
   const discount = displayMrp > displayPrice ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0;
   
-  const currentStock = product.stock !== undefined ? product.stock : 25;
+  const currentStock = Math.max(0, Number(product.stock) || 0);
   const isOutOfStock = currentStock === 0;
+  const isLowStock =
+    !product.digital &&
+    currentStock > 0 &&
+    currentStock <= LOW_STOCK_THRESHOLD;
   const reviews = reviewState.reviews || [];
   const displayRating = reviewState.ratingCount ? reviewState.rating : product.rating;
   const displayRatingCount = reviewState.ratingCount || product.ratingCount || 0;
@@ -631,6 +637,19 @@ export default function ProductDetail() {
                       })}
                     </p>
                   </div>
+                </div>
+              )}
+
+              {isLowStock && (
+                <div
+                  className="mt-4 flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <PackageOpen size={20} className="shrink-0 text-amber-600" />
+                  <p className="text-sm font-semibold">
+                    Hurry Up only {currentStock} remains
+                  </p>
                 </div>
               )}
             </div>

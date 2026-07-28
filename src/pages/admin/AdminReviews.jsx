@@ -104,6 +104,7 @@ export default function AdminReviews() {
 
         return updated.filter((review) => review.id !== reviewId);
       });
+      dispatch(fetchProducts());
     } catch (err) {
       alert(err.message);
     }
@@ -121,6 +122,7 @@ export default function AdminReviews() {
       const data = await readApiResponse(res);
       if (!res.ok) throw new Error(data.message || "Failed to delete review");
       setReviews((current) => current.filter((item) => item.id !== review.id));
+      dispatch(fetchProducts());
     } catch (err) {
       alert(err.message);
     } finally {
@@ -131,7 +133,7 @@ export default function AdminReviews() {
   return (
     <div>
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl mb-8 mt-2">
+      <div className="admin-compact-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl mb-8 mt-2">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>

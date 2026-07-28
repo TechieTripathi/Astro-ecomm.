@@ -1,10 +1,26 @@
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import { backendUrl, COMMON_CLOUDINARY_IMAGE_URL, toAssetUrl } from "../config/api";
 import { showErrorPopup } from "../utils/notificationCenter";
+import {
+  deleteReview,
+  fetchProductReviews,
+  submitProductReview,
+  updateReview,
+} from "./reviewSlice";
 
 const PLACEHOLDER = COMMON_CLOUDINARY_IMAGE_URL;
 
 const toImageUrl = (image) => toAssetUrl(image, PLACEHOLDER);
+
+const applyReviewSummary = (state, payload = {}) => {
+  const productId = String(payload.productId || "");
+  const product = state.items.find((item) => String(item.id) === productId);
+
+  if (!product) return;
+
+  product.rating = Number(payload.rating) || 0;
+  product.ratingCount = Number(payload.ratingCount) || 0;
+};
 
 export const defaultProductStyles = {
   name: { fontFamily: "default", fontSize: 14, fontWeight: "normal", fontStyle: "normal", textColor: "#1F2937" },
@@ -387,6 +403,18 @@ const productsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.items = [];
+      })
+      .addCase(fetchProductReviews.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(submitProductReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(updateReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(deleteReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
       });
   },
 });

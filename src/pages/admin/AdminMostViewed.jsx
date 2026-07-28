@@ -6,7 +6,6 @@ import { TrendingUp, Search, Eye, Hash, Crown, Award, Medal, FileText } from "lu
 import Editable from "../../components/editable/Editable";
 
 const PAGE_SIZE = 10;
-const formatCurrency = (value) => `Rs ${Number(value || 0).toLocaleString("en-IN")}`;
 
 // Helper to get rank icons/colors
 const getRankStyle = (index) => {
@@ -110,7 +109,7 @@ export default function AdminMostViewed() {
   return (
     <div className="space-y-6">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-brand to-indigo-900 p-8 shadow-2xl">
+      <div className="admin-compact-header admin-tabs-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-brand to-indigo-900 p-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10">
           <Editable
@@ -205,13 +204,12 @@ export default function AdminMostViewed() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm min-w-[800px]">
+                  <table className="w-full text-sm min-w-[650px]">
                     <thead>
                       <tr className="text-left bg-gray-50/50">
                         <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Rank</th>
                         <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Product Details</th>
                         <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Engagement</th>
-                        <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs text-right">Price</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
@@ -242,12 +240,6 @@ export default function AdminMostViewed() {
                               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-4 py-2 rounded-full font-bold text-sm border border-indigo-100 shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-0.5">
                                 <TrendingUp size={16} className="text-indigo-500" />
                                 {product.viewCount.toLocaleString()} <span className="font-medium opacity-80 text-xs tracking-wide">VIEWS</span>
-                              </div>
-                            </td>
-                            <td className="py-5 px-6 text-right whitespace-nowrap">
-                              <div className="inline-flex flex-col items-end">
-                                <span className="text-gray-900 font-bold text-lg leading-tight">{formatCurrency(product.price)}</span>
-                                <span className="text-gray-600 font-medium text-[10px] uppercase tracking-wider line-through">MRP {formatCurrency(product.mrp || product.price)}</span>
                               </div>
                             </td>
                           </tr>

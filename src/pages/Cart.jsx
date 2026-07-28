@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, ShoppingBag, Tag, X } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
-import { selectCartItems, selectCartTotals, updateQty, removeFromCart, applyCoupon, removeCoupon, selectAppliedCoupon, selectCartLoading, fetchCart } from "../store/cartSlice";
+import { selectCartItems, selectCartTotals, updateQty, removeFromCart, applyCoupon, removeCoupon, selectAppliedCoupon, selectCartLoading, fetchCart, getCouponErrorPresentation } from "../store/cartSlice";
 import { selectUser } from "../store/authSlice";
 import Editable from "../components/editable/Editable";
 import { getCheckoutNavigationState } from "../utils/checkoutAddress";
@@ -19,6 +19,7 @@ export default function Cart() {
   const appliedCoupon = useSelector(selectAppliedCoupon);
   const user = useSelector(selectUser);
   const [couponCode, setCouponCode] = useState("");
+  const [couponError, setCouponError] = useState(null);
   const [checkingCheckout, setCheckingCheckout] = useState(false);
   const navigate = useNavigate();
 
@@ -33,21 +34,20 @@ export default function Cart() {
     }
 
     if (couponCode.trim().length <= 3) {
-      showErrorPopup("Coupon codes must contain at least four characters.", {
+      setCouponError({
         title: "Invalid coupon code",
-        details: "Check the code and try again.",
+        message: "Coupon codes must contain at least four characters.",
       });
       return;
     }
 
+    setCouponError(null);
     const result = await dispatch(applyCoupon(couponCode.trim().toUpperCase()));
     if (result.type?.endsWith("/rejected")) {
-      showErrorPopup(result.payload || "Could not apply coupon.", {
-        title: "Coupon could not be applied",
-        details: `Code entered: ${couponCode.trim().toUpperCase()}`,
-      });
+      setCouponError(getCouponErrorPresentation(result.payload));
     } else {
       setCouponCode("");
+      setCouponError(null);
     }
   };
 
@@ -275,7 +275,10 @@ export default function Cart() {
                   type="text"
                   placeholder="Enter Coupon Code"
                   value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value)}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    setCouponError(null);
+                  }}
                   className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded text-sm focus:outline-brand uppercase"
                 />
               </div>
@@ -300,6 +303,12 @@ export default function Cart() {
               <button onClick={() => dispatch(removeCoupon())} className="text-gray-400 hover:text-red-500">
                 <X size={16} />
               </button>
+            </div>
+          )}
+          {couponError && !appliedCoupon && (
+            <div className="mt-2 rounded-md border border-red-200 bg-red-50 px-3 py-2">
+              <p className="text-sm font-semibold text-red-700">{couponError.title}</p>
+              <p className="mt-0.5 text-xs text-red-600">{couponError.message}</p>
             </div>
           )}
         </div>

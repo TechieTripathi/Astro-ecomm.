@@ -50,6 +50,61 @@ h1, h2, h3, h4, h5, h6 {
   scrollbar-width: none;
 }
 
+/* Keep admin page headers compact so management content starts higher up. */
+.admin-compact-header {
+  overflow: visible !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.admin-compact-header > .absolute,
+.admin-compact-header p {
+  display: none !important;
+}
+
+.admin-compact-header h1 {
+  margin: 0 !important;
+  color: #111827 !important;
+  font-size: 1.5rem !important;
+  line-height: 2rem !important;
+}
+
+.admin-compact-header button {
+  color: #374151 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-compact-header input {
+  background: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+.admin-compact-header input::placeholder {
+  color: #9ca3af !important;
+}
+
+.admin-compact-header .group svg {
+  color: #6b7280 !important;
+}
+
+.admin-tabs-header > .relative.z-10 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-tabs-header > .relative.z-10 > .flex {
+  border: 1px solid #e5e7eb;
+  background: #f3f4f6;
+}
+
 :focus-visible {
   outline: 2px solid #1A4B8C;
   outline-offset: 2px;
