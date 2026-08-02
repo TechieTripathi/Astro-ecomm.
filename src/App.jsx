@@ -2,7 +2,7 @@ import { useEffect, lazy, Suspense, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { selectBgColor, fetchThemeSettings } from "./store/themeSlice";
 import { selectUser, syncUserProfile } from "./store/authSlice";
-import { refreshFestivals } from "./store/festivalSlice";
+import { fetchCustomFestivals, fetchCustomSeasons, refreshFestivals } from "./store/festivalSlice";
 import { fetchCategories } from "./store/categoriesSlice";
 import { fetchProducts } from "./store/productsSlice";
 import { fetchCart } from "./store/cartSlice";
@@ -58,6 +58,7 @@ const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminMostViewed = lazy(() => import("./pages/admin/AdminMostViewed"));
 const AdminProducts = lazy(() => import("./pages/admin/AdminProducts"));
+const AdminSeasonFestival = lazy(() => import("./pages/admin/AdminSeasonFestival"));
 const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
 const AdminOrderDetail = lazy(() => import("./pages/admin/AdminOrderDetail"));
 const AdminCategories = lazy(() => import("./pages/admin/AdminCategories"));
@@ -100,6 +101,8 @@ export default function App() {
 
     dispatch(fetchCategories());
     dispatch(fetchProducts());
+    dispatch(fetchCustomFestivals());
+    dispatch(fetchCustomSeasons());
     dispatch(fetchThemeSettings());
     dispatch(fetchEditableStyles());
   }, [dispatch]);
@@ -212,6 +215,7 @@ export default function App() {
             <Route path="theme" element={<AdminTheme />} />
             <Route path="homepage" element={<AdminHomepage />} />
             <Route path="products" element={<AdminProducts />} />
+            <Route path="season-festival" element={<AdminSeasonFestival />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="orders" element={<AdminOrders />} />
             <Route path="orders/:orderId" element={<AdminOrderDetail />} />

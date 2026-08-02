@@ -7,7 +7,10 @@ import ProductRail from "../components/ProductRail";
 import { useSelector } from "react-redux";
 import { selectAllProducts, selectProductsLoading } from "../store/productsSlice";
 import { selectCategories, normalizeCategoryStyles } from "../store/categoriesSlice";
+import { selectCustomFestivals, selectCustomSeasons } from "../store/festivalSlice";
 import { backendUrl, readApiResponse, trackedFetch } from "../config/api";
+import { getActiveFestivals } from "../data/festivals";
+import { getActiveSeason } from "../data/seasons";
 
 const WhyChooseUs = lazy(() => import("../components/WhyChooseUs"));
 const TestimonialsSection = lazy(() => import("../components/TestimonialsSection"));
@@ -38,6 +41,8 @@ export default function Home() {
   const allProducts = useSelector(selectAllProducts);
   const productsLoading = useSelector(selectProductsLoading);
   const categories = useSelector(selectCategories);
+  const customFestivals = useSelector(selectCustomFestivals);
+  const customSeasons = useSelector(selectCustomSeasons);
   const [bestsellerCategoryId, setBestsellerCategoryId] = useState("");
   const [visibleRails, setVisibleRails] = useState(2);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -101,6 +106,66 @@ export default function Home() {
         .slice(0, 10),
     [allProducts, bestsellerCategoryId],
   );
+
+  const seasonalFestivalProducts = useMemo(() => {
+    const today = new Date();
+    const activeSeason = getActiveSeason(today, customSeasons);
+    const activeFestivals = getActiveFestivals(today, customFestivals);
+    const activeFestivalIds = new Set(activeFestivals.map((festival) => festival.id));
+    const seasonProducts = activeSeason
+      ? allProducts.filter((product) => product.season === activeSeason.id)
+      : [];
+    const festivalProducts = allProducts.filter(
+      (product) => product.festival && activeFestivalIds.has(product.festival),
+    );
+
+    const products = Array.from(
+      new Map(
+        [...festivalProducts, ...seasonProducts].map((product) => [product.id, product]),
+      ).values(),
+    ).slice(0, 12);
+
+    const matchedFestivalIds = new Set(festivalProducts.map((product) => product.festival));
+    const matchedFestivals = activeFestivals.filter((festival) =>
+      matchedFestivalIds.has(festival.id),
+    );
+    const hasSeasonProducts = seasonProducts.length > 0;
+    const festivalTitle =
+      matchedFestivals.length === 1
+        ? `${matchedFestivals[0].name} Specials`
+        : matchedFestivals.length > 1
+          ? `${matchedFestivals.map((festival) => festival.name).join(" & ")} Specials`
+          : "";
+    const seasonTitle = hasSeasonProducts && activeSeason ? `${activeSeason.name} Collection` : "";
+    const title =
+      festivalTitle && seasonTitle
+        ? `${seasonTitle} & ${festivalTitle}`
+        : festivalTitle || seasonTitle || "Seasonal & Festival Products";
+    const activeNames = [hasSeasonProducts ? activeSeason?.name : "", ...matchedFestivals.map((festival) => festival.name)].filter(Boolean);
+    const badge =
+      matchedFestivals.length > 0 && hasSeasonProducts
+        ? "Featured Collection"
+        : matchedFestivals.length > 0
+          ? "Festival Special"
+          : hasSeasonProducts
+            ? "Seasonal Picks"
+            : "Trending Now";
+    const subtitle =
+      matchedFestivals.length > 0 && hasSeasonProducts
+        ? `Handpicked ${activeSeason.name.toLowerCase()} essentials and festive favorites for ${matchedFestivals.map((festival) => festival.name).join(", ")}.`
+        : matchedFestivals.length > 0
+          ? `Limited-time picks curated specially for ${matchedFestivals.map((festival) => festival.name).join(", ")}.`
+          : hasSeasonProducts
+            ? `Fresh ${activeSeason.name.toLowerCase()} picks chosen for the current season.`
+            : "";
+
+    return {
+      products,
+      title,
+      subtitle: subtitle || (activeNames.length > 0 ? `Showing products for: ${activeNames.join(", ")}` : ""),
+      badge,
+    };
+  }, [allProducts, customFestivals, customSeasons]);
 
   const productsByCategory = useMemo(() => {
     const groupedProducts = new Map();
@@ -176,6 +241,17 @@ export default function Home() {
       <BannerCarousel />
       <CategoryGrid />
       <PanchangStrip />
+
+      {seasonalFestivalProducts.products.length > 0 && (
+        <ProductRail
+          title={seasonalFestivalProducts.title}
+          subtitle={seasonalFestivalProducts.subtitle}
+          badge={seasonalFestivalProducts.badge}
+          products={seasonalFestivalProducts.products}
+          viewAllTo="/products"
+          groupId="seasonal-festival"
+        />
+      )}
 
       {bestsellers.length > 0 && (
         <ProductRail
