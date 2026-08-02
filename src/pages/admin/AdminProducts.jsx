@@ -1,11 +1,25 @@
 import { lazy, Suspense, useEffect, useState, useRef } from "react";
-import { Plus, Pencil, Trash2, X, Upload, ImageOff, Download, Search, Type, RotateCcw } from "lucide-react";
+import { createPortal } from "react-dom";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  X,
+  Upload,
+  ImageOff,
+  Download,
+  Search,
+  Type,
+  RotateCcw,
+  ChevronDown,
+} from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { selectAllProducts, createProduct, updateProduct, deleteProduct, defaultProductStyles, normalizeProductStyles } from "../../store/productsSlice";
 import { selectCategories } from "../../store/categoriesSlice";
 import { fileToCompressedDataUrl } from "../../utils/imageUtils";
 import Editable from "../../components/editable/Editable";
 import { getCategoryDisplayName } from "../../utils/categoryDisplay";
+import AdminFilterSelect from "../../components/admin/AdminFilterSelect";
 
 const ImageEditorModal = lazy(() => import("../../components/ImageEditorModal"));
 
@@ -19,6 +33,9 @@ const emptyForm = {
   variantOptions: [],
   highlights: "",
   description: "",
+  metaTitle: "",
+  metaDescription: "",
+  metaKeywords: "",
   stock: "",
   bestseller: false,
   styles: defaultProductStyles,
@@ -322,6 +339,11 @@ export default function AdminProducts() {
         : [],
       highlights: p.highlights ? p.highlights.join("\n") : "",
       description: p.description,
+      metaTitle: p.metaTitle || "",
+      metaDescription: p.metaDescription || "",
+      metaKeywords: Array.isArray(p.metaKeywords)
+        ? p.metaKeywords.join(", ")
+        : p.metaKeywords || "",
       stock: String(p.stock ?? ""),
       bestseller: Boolean(p.bestseller),
       styles: normalizeProductStyles(p.styles),
@@ -659,10 +681,11 @@ export default function AdminProducts() {
             </div>
             
             <div className="flex gap-3 w-full sm:w-auto">
-              <select
+              <AdminFilterSelect
                 value={sortFilter}
                 onChange={(e) => setSortFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block p-2.5 transition-all outline-none shadow-sm hover:border-gray-300 flex-1 sm:w-32 cursor-pointer appearance-none"
+                className="flex-1 sm:flex-none sm:w-32"
+                aria-label="Sort products"
               >
                 <option value="placeholder" disabled hidden>Sort by</option>
                 <option value="default">Default Sort</option>
@@ -670,18 +693,19 @@ export default function AdminProducts() {
                 <option value="oldest">Oldest First</option>
                 <option value="name-asc">Name A-Z</option>
                 <option value="name-desc">Name Z-A</option>
-              </select>
+              </AdminFilterSelect>
               
-              <select
+              <AdminFilterSelect
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block p-2.5 transition-all outline-none shadow-sm hover:border-gray-300 flex-1 sm:w-36 cursor-pointer appearance-none"
+                className="flex-1 sm:flex-none sm:w-40"
+                aria-label="Filter products by stock status"
               >
                 <option value="all">All Stock Status</option>
                 <option value="out">Out of Stock</option>
                 <option value="low">Low Stock</option>
                 <option value="in">In Stock</option>
-              </select>
+              </AdminFilterSelect>
             </div>
             
             <div className="relative group flex-1 sm:w-40">
@@ -844,19 +868,23 @@ export default function AdminProducts() {
       </Editable>
       </div>
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-md w-full max-w-lg p-5 relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setShowForm(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X size={18} />
-            </button>
-            <h2 className="font-semibold text-gray-900 mb-4">
-              {editingId ? "Edit Product" : "Add New Product"}
-            </h2>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {showForm && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-hidden bg-slate-950/60 p-4 backdrop-blur-[1px] md:p-6">
+          <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-2xl md:max-h-[calc(100vh-3rem)]">
+            <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-5 py-4 md:px-6">
+              <h2 className="font-semibold text-gray-900">
+                {editingId ? "Edit Product" : "Add New Product"}
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="rounded-full p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close product form"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-col gap-3 overflow-y-auto px-5 py-4 md:px-6 md:py-5">
               <div className="flex gap-2">
                 <input
                   required
@@ -1140,6 +1168,68 @@ export default function AdminProducts() {
                 />
                 <FontButton label="Edit description font" onClick={() => setActiveFontKey("description")} />
               </div>
+              <details className="group rounded-lg border border-gray-200 bg-gray-50/70">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-semibold text-gray-800">
+                  <span>SEO &amp; Meta Tags</span>
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs font-normal text-gray-500 group-open:hidden">
+                      Optional
+                    </span>
+                    <span className="hidden text-xs font-normal text-brand group-open:inline">
+                      Hide
+                    </span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-4 w-4 text-gray-500 transition-transform duration-200 group-open:rotate-180"
+                    />
+                  </span>
+                </summary>
+                <div className="space-y-3 border-t border-gray-200 px-4 py-4">
+                  <div>
+                    <span className="mb-1 block text-right text-[11px] text-gray-400">
+                      {form.metaTitle.length}/60
+                    </span>
+                    <input
+                      id="product-meta-title"
+                      data-floating-label="Meta title"
+                      value={form.metaTitle}
+                      onChange={(e) => setForm({ ...form, metaTitle: e.target.value })}
+                      maxLength={60}
+                      placeholder={form.name || "SEO title shown in search results"}
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10"
+                    />
+                  </div>
+                  <div>
+                    <span className="mb-1 block text-right text-[11px] text-gray-400">
+                      {form.metaDescription.length}/160
+                    </span>
+                    <textarea
+                      id="product-meta-description"
+                      data-floating-label="Meta description"
+                      value={form.metaDescription}
+                      onChange={(e) => setForm({ ...form, metaDescription: e.target.value })}
+                      maxLength={160}
+                      rows={3}
+                      placeholder="Short search-result description; product description is used when blank"
+                      className="w-full resize-y rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10"
+                    />
+                  </div>
+                  <div>
+                    <input
+                      id="product-meta-keywords"
+                      data-floating-label="Meta keywords"
+                      value={form.metaKeywords}
+                      onChange={(e) => setForm({ ...form, metaKeywords: e.target.value })}
+                      maxLength={400}
+                      placeholder="gemstone, astrology, natural stone"
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/10"
+                    />
+                    <p className="mt-1 text-[11px] text-gray-500">
+                      Separate keywords with commas.
+                    </p>
+                  </div>
+                </div>
+              </details>
               <Editable
                 as="button"
                 kind="button"
@@ -1223,7 +1313,8 @@ export default function AdminProducts() {
               />
             </Suspense>
           )}
-    </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

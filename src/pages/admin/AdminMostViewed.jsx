@@ -117,6 +117,7 @@ export default function AdminMostViewed() {
             id="admin-trending-page-heading"
             kind="button"
             label="Page Heading"
+            style={{ outline: "none" }}
             className="font-display font-bold text-3xl md:text-4xl text-white tracking-tight mb-2 flex items-center gap-3"
           >
             {isProducts ? <TrendingUp size={36} className="text-amber-400" /> : <Eye size={36} className="text-amber-400" />}

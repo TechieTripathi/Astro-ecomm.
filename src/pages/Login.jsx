@@ -5,6 +5,7 @@ import { useDispatch } from "react-redux";
 import { googleLogin, login } from "../store/authSlice";
 import Editable from "../components/editable/Editable";
 import { showErrorPopup, showInfoPopup } from "../utils/notificationCenter";
+import { toSafeNavigationUrl } from "../utils/safeUrl";
 
 export default function Login() {
 	const dispatch = useDispatch();
@@ -22,7 +23,7 @@ export default function Login() {
 		if (user?.role === "admin") {
 			navigate("/admin", { replace: true });
 		} else {
-			navigate(location.state?.from || "/", { replace: true });
+			navigate(toSafeNavigationUrl(location.state?.from), { replace: true });
 		}
 	};
 

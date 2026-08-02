@@ -35,6 +35,7 @@ import {
   selectAboutPageSaving,
 } from "../store/aboutPageSlice";
 import { fileToCompressedDataUrl } from "../utils/imageUtils";
+import { toSafeNavigationUrl } from "../utils/safeUrl";
 
 const ImageEditorModal = lazy(() => import("../components/ImageEditorModal"));
 
@@ -443,7 +444,7 @@ function AboutPageLayout({ page, titleStyle, headingStyle, bodyStyle, editable =
                 <div className="relative">
                   <EditButton active={editable} label="Edit primary button" onClick={() => onEdit("primaryButton", page.primaryButton, "Primary Button", "button")} />
                   <Link
-                    to={page.primaryButton?.link || "/products"}
+                    to={toSafeNavigationUrl(page.primaryButton?.link, "/products")}
                     className="block rounded-md bg-gold-light px-5 py-3 text-sm font-bold text-gray-950 shadow-sm transition hover:bg-yellow-300"
                     style={buttonStyle(page.primaryButton)}
                   >
@@ -455,7 +456,7 @@ function AboutPageLayout({ page, titleStyle, headingStyle, bodyStyle, editable =
                 <div className="relative">
                   <EditButton active={editable} label="Edit secondary button" onClick={() => onEdit("secondaryButton", page.secondaryButton, "Secondary Button", "button")} />
                   <Link
-                    to={page.secondaryButton?.link || "/contact"}
+                    to={toSafeNavigationUrl(page.secondaryButton?.link, "/contact")}
                     className="block rounded-md border border-white/25 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
                     style={buttonStyle(page.secondaryButton)}
                   >
