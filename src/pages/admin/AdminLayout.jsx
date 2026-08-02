@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { NavLink, Link, Outlet, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Package, ShoppingCart, Sparkles, LogOut, Menu, X, Pencil, Home, FolderTree, Boxes, Tag, Star, Truck, Users, Activity, ImageIcon, MonitorSmartphone, Palette, TrendingUp, Eye, ChevronDown, Bell, MessageSquare, PanelBottom } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Sparkles, LogOut, Menu, X, Pencil, Home, FolderTree, Boxes, Tag, Star, Truck, Users, Activity, ImageIcon, MonitorSmartphone, Palette, TrendingUp, Eye, ChevronDown, Bell, MessageSquare, PanelBottom, CalendarDays } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import { getUserDisplayName, selectUser, logout } from "../../store/authSlice";
 import { selectEditMode, toggleEditMode } from "../../store/editableStyleSlice";
@@ -20,6 +20,7 @@ const navGroups = [
     title: "Catalog",
     items: [
       { to: "/admin/products", label: "Products", icon: Package },
+      { to: "/admin/season-festival", label: "Season & Festival", icon: CalendarDays },
       { to: "/admin/categories", label: "Categories", icon: FolderTree },
       { to: "/admin/inventory", label: "Inventory", icon: Boxes },
     ]
@@ -37,7 +38,6 @@ const navGroups = [
     items: [
       { to: "/admin/theme", label: "Theme", icon: Palette },
       { to: "/admin/banners", label: "Banners", icon: ImageIcon },
-      { to: "/admin/homepage", label: "Bestseller Category", icon: Home },
     ]
   },
   {
