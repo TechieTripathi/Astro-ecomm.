@@ -5,6 +5,7 @@ import { selectCategories } from "../../store/categoriesSlice";
 import { Search, AlertCircle, TrendingDown, Save, Download } from "lucide-react";
 import Editable from "../../components/editable/Editable";
 import { getCategoryDisplayName } from "../../utils/categoryDisplay";
+import AdminFilterSelect from "../../components/admin/AdminFilterSelect";
 
 const LOW_STOCK_LIMIT = 5;
 const PAGE_SIZE = 10;
@@ -252,28 +253,30 @@ export default function AdminInventory() {
             </div>
             
             <div className="flex gap-3 w-full sm:w-auto">
-              <select
+              <AdminFilterSelect
                 value={sortFilter}
                 onChange={(e) => setSortFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block p-2.5 transition-all outline-none shadow-sm hover:border-gray-300 flex-1 sm:w-32 cursor-pointer appearance-none"
+                className="flex-1 sm:flex-none sm:w-32"
+                aria-label="Sort inventory"
               >
                 <option value="placeholder" disabled hidden>Sort by</option>
                 <option value="default">Default Sort</option>
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
-                <option value="stock-low">Stock: Low to High</option>
-                <option value="stock-high">Stock: High to Low</option>
-              </select>
-              <select
+                <option value="stock-low">Low Stock First</option>
+                <option value="stock-high">High Stock First</option>
+              </AdminFilterSelect>
+              <AdminFilterSelect
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block p-2.5 transition-all outline-none shadow-sm hover:border-gray-300 flex-1 sm:w-36 cursor-pointer appearance-none"
+                className="flex-1 sm:flex-none sm:w-40"
+                aria-label="Filter inventory by stock status"
               >
                 <option value="all">All stock</option>
                 <option value="out">Out of stock</option>
                 <option value="low">Low stock (1-{LOW_STOCK_LIMIT - 1})</option>
                 <option value="in">In stock</option>
-              </select>
+              </AdminFilterSelect>
             </div>
             <div className="relative group flex-1 sm:w-40">
               <input

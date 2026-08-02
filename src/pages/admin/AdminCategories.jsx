@@ -6,6 +6,7 @@ import { selectCategories, createCategory, updateCategory, deleteCategory, fetch
 import { fileToCompressedDataUrl } from "../../utils/imageUtils";
 import Editable from "../../components/editable/Editable";
 import { COMMON_CLOUDINARY_IMAGE_URL, toAssetUrl } from "../../config/api";
+import AdminFilterSelect from "../../components/admin/AdminFilterSelect";
 
 const ImageEditorModal = lazy(() => import("../../components/ImageEditorModal"));
 
@@ -426,10 +427,11 @@ export default function AdminCategories() {
             </div>
             
             <div className="flex gap-3 w-full sm:w-auto">
-              <select
+              <AdminFilterSelect
                 value={sortFilter}
                 onChange={(e) => setSortFilter(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block p-2.5 transition-all outline-none shadow-sm hover:border-gray-300 flex-1 sm:w-32 cursor-pointer appearance-none"
+                className="flex-1 sm:flex-none sm:w-32"
+                aria-label="Sort categories"
               >
                 <option value="placeholder" disabled hidden>Sort by</option>
                 <option value="default">Default Sort</option>
@@ -437,7 +439,7 @@ export default function AdminCategories() {
                 <option value="oldest">Oldest First</option>
                 <option value="name-asc">Name A-Z</option>
                 <option value="name-desc">Name Z-A</option>
-              </select>
+              </AdminFilterSelect>
             </div>
             
             <div className="relative group flex-1 sm:w-40">

@@ -74,7 +74,7 @@ export const readApiResponse = async (res, { notifyOnError = true } = {}) => {
         return "API request";
       }
     })();
-    const responseDetails = data.details && typeof data.details === "object"
+    const responseDetails = import.meta.env.DEV && data.details && typeof data.details === "object"
       ? Object.entries(data.details)
           .map(([key, value]) => `${key}: ${value}`)
           .join("\n")

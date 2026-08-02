@@ -16,7 +16,7 @@ import {
   submitProductReview,
   updateReview,
 } from "../store/reviewSlice";
-import { backendUrl, COMMON_CLOUDINARY_IMAGE_URL, readApiResponse, trackedFetch } from "../config/api";
+import { backendUrl, COMMON_CLOUDINARY_IMAGE_URL, readApiResponse, toAssetUrl, trackedFetch } from "../config/api";
 import StarRating from "../components/StarRating";
 import ProductCard from "../components/ProductCard";
 import Editable from "../components/editable/Editable";
@@ -198,7 +198,12 @@ export default function ProductDetail() {
   const handleShareWhatsApp = () => {
     const url = window.location.href;
     const text = `Check out ${product.name} on Astro Wala Shop!\n\n${url}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+    const shareWindow = window.open(
+      `https://wa.me/?text=${encodeURIComponent(text)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    if (shareWindow) shareWindow.opener = null;
     setShowShareMenu(false);
   };
 
@@ -412,11 +417,32 @@ export default function ProductDetail() {
     }
   };
 
+  const metaTitle = product.metaTitle?.trim() || `${product.name} | Astro Wala Shop`;
+  const metaDescription =
+    product.metaDescription?.trim() ||
+    String(product.description || "").replace(/\s+/g, " ").trim().slice(0, 160);
+  const metaKeywords = Array.isArray(product.metaKeywords)
+    ? product.metaKeywords.join(", ")
+    : String(product.metaKeywords || "").trim();
+  const canonicalUrl =
+    typeof window !== "undefined" ? window.location.href.split(/[?#]/)[0] : "";
+
   return (
     <div>
       <Helmet>
-        <title>{product.name} | AstroMart</title>
-        <meta name="description" content={product.description?.substring(0, 150) + "..."} />
+        <title>{metaTitle}</title>
+        <meta name="description" content={metaDescription} />
+        {metaKeywords && <meta name="keywords" content={metaKeywords} />}
+        {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={metaTitle} />
+        <meta property="og:description" content={metaDescription} />
+        <meta property="og:image" content={product.image} />
+        {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={metaTitle} />
+        <meta name="twitter:description" content={metaDescription} />
+        <meta name="twitter:image" content={product.image} />
       </Helmet>
       {/* ── Breadcrumb ── */}
       <Editable as="div" id="pd-breadcrumb" kind="button" label="Breadcrumb Text"
@@ -795,23 +821,26 @@ export default function ProductDetail() {
                   <p className="text-sm text-gray-700 mt-1">{r.comment}</p>
                   {r.images?.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {r.images.map((image, index) => (
-                        <a
-                          key={`${r.id}-image-${index}`}
-                          href={image.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block h-20 w-20 overflow-hidden rounded border border-gray-100 bg-gray-50"
-                          aria-label={`Open review image ${index + 1}`}
-                        >
-                          <img
-                            loading="lazy"
-                            src={image.url}
-                            alt={`${r.user} review photo ${index + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-                        </a>
-                      ))}
+                      {r.images.map((image, index) => {
+                        const reviewImageUrl = toAssetUrl(image.url);
+                        return (
+                          <a
+                            key={`${r.id}-image-${index}`}
+                            href={reviewImageUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block h-20 w-20 overflow-hidden rounded border border-gray-100 bg-gray-50"
+                            aria-label={`Open review image ${index + 1}`}
+                          >
+                            <img
+                              loading="lazy"
+                              src={reviewImageUrl}
+                              alt={`${r.user} review photo ${index + 1}`}
+                              className="h-full w-full object-cover"
+                            />
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
                 </Editable>

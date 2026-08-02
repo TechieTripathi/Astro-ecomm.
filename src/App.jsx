@@ -17,6 +17,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GlobalLoadingBar from "./components/GlobalLoadingBar";
 import PageTracker from "./components/PageTracker";
 import PageLoadingState from "./components/PageLoadingState";
+import FloatingFormLabels from "./components/FloatingFormLabels";
 
 const CartDrawer = lazy(() => import("./components/CartDrawer"));
 const CompareBar = lazy(() => import("./components/CompareBar"));
@@ -135,6 +136,7 @@ export default function App() {
     <BrowserRouter>
       <PageTracker />
       <GlobalLoadingBar />
+      <FloatingFormLabels />
       {cartDrawerLoaded && (
         <Suspense fallback={null}>
           <CartDrawer />

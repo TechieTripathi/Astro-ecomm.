@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBanners, normalizeBannerStyles, selectBannerSlides } from "../store/bannerSlice";
 import Editable from "./editable/Editable";
+import { toSafeNavigationUrl } from "../utils/safeUrl";
 
 const fontFamilyMap = {
   default: undefined,
@@ -116,7 +117,7 @@ function BannerCarousel() {
                 {slide?.cta && (
                   <Editable
                     as={Link}
-                    to={slide.to || "/"}
+                    to={toSafeNavigationUrl(slide.to)}
                     kind="button"
                     group="banner-cta"
                     label="Banner CTA Button"

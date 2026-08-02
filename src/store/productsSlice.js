@@ -243,6 +243,11 @@ export const fetchProducts = createAsyncThunk(
                 image,
                 images: Array.isArray(p.images) ? p.images.map(toImageUrl) : [image],
                 description: p.description || "",
+                metaTitle: p.metaTitle || "",
+                metaDescription: p.metaDescription || "",
+                metaKeywords: Array.isArray(p.metaKeywords)
+                  ? p.metaKeywords.join(", ")
+                  : p.metaKeywords || "",
                 styles: normalizeProductStyles(p.styles),
                 highlights,
                 reviews: Array.isArray(p.reviews) ? p.reviews : [],
@@ -269,6 +274,9 @@ export const createProduct = createAsyncThunk(
       const body = new FormData();
       body.append("name", productData.name);
       body.append("description", productData.description || "");
+      body.append("metaTitle", productData.metaTitle || "");
+      body.append("metaDescription", productData.metaDescription || "");
+      body.append("metaKeywords", productData.metaKeywords || "");
       body.append("price", String(productData.price));
       body.append("mrp", String(productData.mrp || productData.price));
       body.append("category_id", productData.category);
@@ -323,6 +331,13 @@ export const updateProduct = createAsyncThunk(
       const body = new FormData();
       if (product.name !== undefined) body.append("name", product.name);
       if (product.description !== undefined) body.append("description", product.description || "");
+      if (product.metaTitle !== undefined) body.append("metaTitle", product.metaTitle || "");
+      if (product.metaDescription !== undefined) {
+        body.append("metaDescription", product.metaDescription || "");
+      }
+      if (product.metaKeywords !== undefined) {
+        body.append("metaKeywords", product.metaKeywords || "");
+      }
       if (product.price !== undefined) body.append("price", String(product.price));
       if (product.mrp !== undefined) body.append("mrp", String(product.mrp || product.price || 0));
       if (product.category !== undefined) body.append("category_id", product.category);
