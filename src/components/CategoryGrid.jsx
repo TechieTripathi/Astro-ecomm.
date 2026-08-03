@@ -4,9 +4,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import * as Icons from "lucide-react";
 import { useSelector } from "react-redux";
 import { selectCategories, selectCategoriesLoading, normalizeCategoryStyles } from "../store/categoriesSlice";
+import { selectCustomFestivals, selectCustomSeasons } from "../store/festivalSlice";
 import Editable from "./editable/Editable";
 import { COMMON_CLOUDINARY_IMAGE_URL } from "../config/api";
 import PageLoadingState from "./PageLoadingState";
+import { getActiveFestivals } from "../data/festivals";
+import { getActiveSeason } from "../data/seasons";
 
 const fontFamilyMap = {
   default: undefined,
@@ -33,6 +36,8 @@ const toTextStyle = (style = {}) => ({
 function CategoryGrid() {
   const categories = useSelector(selectCategories);
   const loading = useSelector(selectCategoriesLoading);
+  const customFestivals = useSelector(selectCustomFestivals);
+  const customSeasons = useSelector(selectCustomSeasons);
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -66,6 +71,31 @@ function CategoryGrid() {
     [categories],
   );
 
+  const activeCollection = useMemo(() => {
+    const today = new Date();
+    const activeSeason = getActiveSeason(today, customSeasons);
+    const activeFestivals = getActiveFestivals(today, customFestivals);
+    const activeFestival = activeFestivals[0];
+
+    if (activeFestival) {
+      return {
+        title: `${activeFestival.name} Specials`,
+        subtitle: "Limited-time festive picks are live across your favorite spiritual categories.",
+        badge: "Festival Special",
+      };
+    }
+
+    if (activeSeason) {
+      return {
+        title: `${activeSeason.name} Collection`,
+        subtitle: activeSeason.subtitle || `Explore handpicked ${activeSeason.name.toLowerCase()} essentials.`,
+        badge: "Seasonal Picks",
+      };
+    }
+
+    return null;
+  }, [customFestivals, customSeasons]);
+
   if (loading && categories.length === 0) {
     return <PageLoadingState label="Loading categories..." />;
   }
@@ -86,6 +116,34 @@ function CategoryGrid() {
       label="Category Grid — Card Background"
       className="rounded-md shadow-card px-2 md:px-8 py-6 bg-white overflow-hidden relative group/grid"
     >
+      {activeCollection && (
+        <div className="mb-5 flex flex-col gap-2 px-2 md:flex-row md:items-center md:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <Editable
+                as="h2"
+                group="categorygrid-active-title"
+                label="Active Collection Title"
+                className="font-display text-xl font-bold text-gray-950 md:text-2xl"
+              >
+                {activeCollection.title}
+              </Editable>
+              <span className="rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm">
+                {activeCollection.badge}
+              </span>
+            </div>
+            <Editable
+              as="p"
+              group="categorygrid-active-subtitle"
+              label="Active Collection Subtitle"
+              className="mt-1 text-sm font-medium text-gray-500"
+            >
+              {activeCollection.subtitle}
+            </Editable>
+          </div>
+        </div>
+      )}
+
       {canScrollLeft && (
         <button 
           type="button"

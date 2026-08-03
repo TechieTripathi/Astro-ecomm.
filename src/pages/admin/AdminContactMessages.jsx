@@ -189,7 +189,7 @@ export default function AdminContactMessages() {
 
   return (
     <div>
-      <div className="relative mb-8 mt-2 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
+      <div className="admin-compact-header relative mb-8 mt-2 overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
         <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="font-display text-3xl font-bold tracking-tight text-white md:text-4xl">

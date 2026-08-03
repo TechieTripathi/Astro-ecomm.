@@ -1,10 +1,26 @@
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import { backendUrl, COMMON_CLOUDINARY_IMAGE_URL, toAssetUrl } from "../config/api";
 import { showErrorPopup } from "../utils/notificationCenter";
+import {
+  deleteReview,
+  fetchProductReviews,
+  submitProductReview,
+  updateReview,
+} from "./reviewSlice";
 
 const PLACEHOLDER = COMMON_CLOUDINARY_IMAGE_URL;
 
 const toImageUrl = (image) => toAssetUrl(image, PLACEHOLDER);
+
+const applyReviewSummary = (state, payload = {}) => {
+  const productId = String(payload.productId || "");
+  const product = state.items.find((item) => String(item.id) === productId);
+
+  if (!product) return;
+
+  product.rating = Number(payload.rating) || 0;
+  product.ratingCount = Number(payload.ratingCount) || 0;
+};
 
 export const defaultProductStyles = {
   name: { fontFamily: "default", fontSize: 14, fontWeight: "normal", fontStyle: "normal", textColor: "#1F2937" },
@@ -232,6 +248,8 @@ export const fetchProducts = createAsyncThunk(
                 reviews: Array.isArray(p.reviews) ? p.reviews : [],
                 stock: Number(p.stock) || 0,
                 bestseller: Boolean(p.bestseller),
+                season: p.season || "",
+                festival: p.festival || "",
                 createdAt: p.createdAt || "",
                 updatedAt: p.updatedAt || "",
                 viewCount: Number(p.viewCount) || 0,
@@ -259,6 +277,8 @@ export const createProduct = createAsyncThunk(
       body.append("brand", productData.brand || "");
       body.append("stock", String(productData.stock || 100));
       body.append("bestseller", String(Boolean(productData.bestseller)));
+      body.append("season", productData.season || "");
+      body.append("festival", productData.festival || "");
       body.append("styles", JSON.stringify(normalizeProductStyles(productData.styles)));
 
       const sizeValue =
@@ -313,6 +333,8 @@ export const updateProduct = createAsyncThunk(
       if (product.brand !== undefined) body.append("brand", product.brand || "");
       if (product.stock !== undefined) body.append("stock", String(product.stock));
       if (product.bestseller !== undefined) body.append("bestseller", String(Boolean(product.bestseller)));
+      body.append("season", product.season || "");
+      body.append("festival", product.festival || "");
       body.append("styles", JSON.stringify(normalizeProductStyles(product.styles)));
 
       const sizeValue =
@@ -387,6 +409,18 @@ const productsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.items = [];
+      })
+      .addCase(fetchProductReviews.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(submitProductReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(updateReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
+      })
+      .addCase(deleteReview.fulfilled, (state, action) => {
+        applyReviewSummary(state, action.payload);
       });
   },
 });

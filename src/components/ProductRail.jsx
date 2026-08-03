@@ -4,7 +4,7 @@ import { ChevronRight, ChevronsRight } from "lucide-react";
 import ProductCard from "./ProductCard";
 import Editable from "./editable/Editable";
 
-function ProductRail({ title, subtitle, products, viewAllTo, groupId, titleStyle, subtitleStyle }) {
+function ProductRail({ title, subtitle, products, viewAllTo, groupId, titleStyle, subtitleStyle, badge }) {
   const scrollRef = useRef(null);
   const railGroup = groupId ? `product-frame-${groupId}` : "product-frame";
   const titleGroup = groupId ? `product-frame-title-${groupId}` : "product-frame-title";
@@ -30,15 +30,22 @@ function ProductRail({ title, subtitle, products, viewAllTo, groupId, titleStyle
     >
       <div className="flex items-center justify-between mb-3">
         <div>
-          <Editable
-            as="h3"
-            group={titleGroup}
-            label="Product Section Title"
-            className="font-display font-semibold text-lg text-gray-900"
-            style={titleStyle}
-          >
-            {title}
-          </Editable>
+          <div className="flex flex-wrap items-center gap-2">
+            <Editable
+              as="h3"
+              group={titleGroup}
+              label="Product Section Title"
+              className="font-display font-semibold text-lg text-gray-900"
+              style={titleStyle}
+            >
+              {title}
+            </Editable>
+            {badge && (
+              <span className="rounded-full bg-gradient-to-r from-amber-500 to-rose-500 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white shadow-sm ring-1 ring-amber-200">
+                {badge}
+              </span>
+            )}
+          </div>
           {subtitle && (
             <Editable as="p" group={paragraphGroup} label="Product Section Paragraph" className="text-xs text-gray-500" style={subtitleStyle}>
               {subtitle}

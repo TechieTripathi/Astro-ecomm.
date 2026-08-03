@@ -125,6 +125,29 @@ const normalizeAppliedCoupon = (data = {}) => {
   };
 };
 
+export const getCouponErrorPresentation = (error) => {
+  const message =
+    typeof error === "string"
+      ? error
+      : error?.message || "Could not apply this coupon.";
+  const limitMatch = message.match(/must not exceed Rs\s*([\d,.]+)/i);
+
+  if (limitMatch) {
+    const limit = Number(String(limitMatch[1]).replace(/,/g, ""));
+    return {
+      title: "Coupon limit exceeded",
+      message: Number.isFinite(limit)
+        ? `This coupon is valid only for eligible cart values up to ₹${limit.toLocaleString("en-IN")}.`
+        : "Your cart value is above the maximum allowed for this coupon.",
+    };
+  }
+
+  return {
+    title: "Coupon could not be applied",
+    message,
+  };
+};
+
 export const fetchCart = createAsyncThunk("cart/fetch", async (_, thunkAPI) => {
   try {
     const guestItems = loadFromStorage();
@@ -312,17 +335,19 @@ export const applyCoupon = createAsyncThunk("cart/applyCoupon", async (couponCod
   try {
     const items = buildCouponItems(thunkAPI.getState().cart.items);
     const invalidItem = items.find((item) => !isMongoObjectId(item.productId));
+    const rejectCoupon = (message) =>
+      thunkAPI.rejectWithValue(message, { suppressErrorNotification: true });
 
     if (!hasAuthCredentials()) {
-      return thunkAPI.rejectWithValue("Please login to apply a coupon.");
+      return rejectCoupon("Please login to apply a coupon.");
     }
 
     if (items.length === 0) {
-      return thunkAPI.rejectWithValue("Cart is empty.");
+      return rejectCoupon("Cart is empty.");
     }
 
     if (invalidItem) {
-      return thunkAPI.rejectWithValue("Please remove old demo products and add them again.");
+      return rejectCoupon("Please remove old demo products and add them again.");
     }
 
     const res = await fetchWithAuthRequest(`${backendUrl}/api/v1/coupon/apply`, {
@@ -333,13 +358,15 @@ export const applyCoupon = createAsyncThunk("cart/applyCoupon", async (couponCod
         items,
       }),
     });
-    const data = await readApiResponse(res);
+    const data = await readApiResponse(res, { notifyOnError: false });
 
-    if (!res.ok) return thunkAPI.rejectWithValue(data.message || "Failed to apply coupon");
+    if (!res.ok) return rejectCoupon(data.message || "Failed to apply coupon");
 
     return normalizeAppliedCoupon(data);
   } catch (err) {
-    return thunkAPI.rejectWithValue(err.message);
+    return thunkAPI.rejectWithValue(err.message, {
+      suppressErrorNotification: true,
+    });
   }
 });
 

@@ -53,7 +53,7 @@ export const getAuthHeader = () => {
   return token ? `Bearer ${token}` : "";
 };
 
-export const readApiResponse = async (res) => {
+export const readApiResponse = async (res, { notifyOnError = true } = {}) => {
   const text = await res.text();
   let data = {};
 
@@ -65,7 +65,7 @@ export const readApiResponse = async (res) => {
     }
   }
 
-  if (!res.ok) {
+  if (!res.ok && notifyOnError) {
     const requestPath = (() => {
       try {
         const url = new URL(res.url);

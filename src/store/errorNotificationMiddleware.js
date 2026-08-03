@@ -15,6 +15,7 @@ export const errorNotificationMiddleware = () => (next) => (action) => {
 
   if (
     !action.meta?.fromChannel &&
+    !action.meta?.suppressErrorNotification &&
     action.type?.endsWith("/rejected") &&
     !action.meta?.aborted &&
     !action.meta?.condition
@@ -28,4 +29,3 @@ export const errorNotificationMiddleware = () => (next) => (action) => {
 
   return result;
 };
-

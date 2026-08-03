@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Pencil, Trash2, X, Tag, Search, RotateCcw } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Tag, Search, RotateCcw, Copy } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchProducts, selectAllProducts } from "../../store/productsSlice";
 import { fetchCategories, selectCategories } from "../../store/categoriesSlice";
@@ -9,9 +9,11 @@ import {
   readApiResponse,
 } from "../../config/api";
 import Editable from "../../components/editable/Editable";
+import { showInfoPopup } from "../../utils/notificationCenter";
 
 const emptyForm = {
   couponId: "",
+  codeMode: "auto",
   targetType: "all",
   category_id: "",
   product_id: "",
@@ -22,6 +24,7 @@ const emptyForm = {
   expireDate: "",
   maxLimit: "1",
   minPurchaseAmount: "0",
+  maxPurchaseAmount: "0",
   isActive: true,
 };
 
@@ -66,6 +69,31 @@ const getDefaultCouponDates = () => {
     startDate: toInputDate(start),
     expireDate: toInputDate(expire),
   };
+};
+
+const normalizeCouponCode = (value = "") =>
+  String(value).trim().toUpperCase().replace(/\s+/g, "-");
+
+const copyTextToClipboard = async (text) => {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+      // Fall back for browsers that block asynchronous clipboard access.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.select();
+  const copied = document.execCommand("copy");
+  textarea.remove();
+  if (!copied) throw new Error("Clipboard access was blocked");
 };
 
 export default function AdminCoupons() {
@@ -164,6 +192,7 @@ export default function AdminCoupons() {
   const openEdit = (coupon) => {
     setForm({
       couponId: coupon.couponId || "",
+      codeMode: "custom",
       targetType: coupon.targetType || (coupon.categoryId ? "category" : coupon.productId ? "product" : "all"),
       category_id: coupon.categoryId || coupon.category_id || "",
       product_id: coupon.productId || coupon.product_id || "",
@@ -174,6 +203,7 @@ export default function AdminCoupons() {
       expireDate: toDateInput(coupon.expireDate),
       maxLimit: String(coupon.maxLimit || 1),
       minPurchaseAmount: String(coupon.minPurchaseAmount || 0),
+      maxPurchaseAmount: String(coupon.maxPurchaseAmount || 0),
       isActive: Boolean(coupon.isActive),
     });
     setEditingId(coupon.id);
@@ -219,6 +249,32 @@ export default function AdminCoupons() {
     e.preventDefault();
     setError("");
 
+    const maxPurchaseAmount = Number(form.maxPurchaseAmount);
+    if (!Number.isFinite(maxPurchaseAmount) || maxPurchaseAmount < 0) {
+      setError("Maximum purchase amount must be 0 or greater.");
+      return;
+    }
+    const minPurchaseAmount = Number(form.minPurchaseAmount);
+    if (
+      maxPurchaseAmount > 0 &&
+      Number.isFinite(minPurchaseAmount) &&
+      maxPurchaseAmount < minPurchaseAmount
+    ) {
+      setError("Maximum purchase amount cannot be below the minimum price.");
+      return;
+    }
+    const customCouponCode = normalizeCouponCode(form.couponId);
+    if (
+      !editingId &&
+      form.codeMode === "custom" &&
+      !/^[A-Z0-9][A-Z0-9_-]{3,31}$/.test(customCouponCode)
+    ) {
+      setError(
+        "Custom coupon code must be 4–32 characters using letters, numbers, hyphens, or underscores.",
+      );
+      return;
+    }
+
     const payload = {
       targetType: form.targetType,
       category_id: form.targetType === "category" ? form.category_id : undefined,
@@ -229,9 +285,15 @@ export default function AdminCoupons() {
       startDate: form.startDate,
       expireDate: form.expireDate,
       maxLimit: Number(form.maxLimit),
-      minPurchaseAmount: Number(form.minPurchaseAmount),
+      minPurchaseAmount,
+      maxPurchaseAmount,
       isActive: form.isActive,
-      couponId: form.couponId || (editingId ? undefined : `NEW-${Date.now().toString().slice(-4)}`),
+      couponId: editingId
+        ? customCouponCode
+        : form.codeMode === "custom"
+          ? customCouponCode
+          : `NEW-${Date.now().toString().slice(-4)}`,
+      codeMode: form.codeMode,
     };
 
     if (editingId) {
@@ -295,6 +357,7 @@ export default function AdminCoupons() {
       discountValue,
       maxLimit: 1,
       minPurchaseAmount: 0,
+      maxPurchaseAmount: 0,
       isActive: true,
     };
 
@@ -348,6 +411,7 @@ export default function AdminCoupons() {
     let nextUpdates = { ...pendingUpdates };
     let nextDeletes = [...pendingDeletes];
     const failures = [];
+    const createdCouponCodes = [];
 
     for (const coupon of pendingCreates) {
       try {
@@ -355,6 +419,7 @@ export default function AdminCoupons() {
         delete payload.id;
         delete payload._pendingAction;
         delete payload.createdAt;
+        delete payload.codeMode;
         if (payload.couponId && payload.couponId.startsWith("NEW-")) delete payload.couponId;
         
         const res = await fetchWithAuth(`${backendUrl}/api/v1/admin/coupons`, {
@@ -366,6 +431,7 @@ export default function AdminCoupons() {
         if (!res.ok) throw new Error(data.message || "Failed to create");
         
         setCoupons(current => [data.data, ...current]);
+        if (data.data?.couponId) createdCouponCodes.push(data.data.couponId);
         nextCreates = nextCreates.filter((c) => c.id !== coupon.id);
       } catch (err) {
         failures.push(`Create: ${err.message}`);
@@ -378,6 +444,7 @@ export default function AdminCoupons() {
         delete payload.id;
         delete payload._pendingAction;
         delete payload.createdAt;
+        delete payload.codeMode;
         
         const res = await fetchWithAuth(`${backendUrl}/api/v1/admin/coupons/${id}`, {
           method: "PUT",
@@ -414,6 +481,24 @@ export default function AdminCoupons() {
     setPendingDeletes(nextDeletes);
     setSavingChanges(false);
 
+    if (createdCouponCodes.length > 0) {
+      const clipboardText = createdCouponCodes.join("\n");
+      try {
+        await copyTextToClipboard(clipboardText);
+        showInfoPopup(
+          createdCouponCodes.length === 1
+            ? `Coupon ${createdCouponCodes[0]} copied to clipboard.`
+            : `${createdCouponCodes.length} coupon codes copied to clipboard.`,
+          { type: "success", title: "Coupon created" },
+        );
+      } catch {
+        showInfoPopup(
+          "Coupon created, but automatic clipboard access was blocked. Use the copy button beside the coupon code.",
+          { title: "Coupon created" },
+        );
+      }
+    }
+
     if (failures.length > 0) {
       alert(`Some changes could not be saved:\n${failures.join("\n")}`);
     }
@@ -422,7 +507,7 @@ export default function AdminCoupons() {
   return (
     <div className="space-y-6 max-w-full">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
+      <div className="admin-compact-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -538,7 +623,7 @@ export default function AdminCoupons() {
         </div>
 
         <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[1220px]">
+        <table className="w-full text-sm min-w-[1320px]">
           <thead>
             <tr className="text-left bg-gray-50/50">
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Coupon ID</th>
@@ -549,6 +634,7 @@ export default function AdminCoupons() {
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Expire Date</th>
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Max/User</th>
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Min Price</th>
+              <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Max Price</th>
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Usage</th>
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Status</th>
               <th className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs text-right">Actions</th>
@@ -557,11 +643,11 @@ export default function AdminCoupons() {
           <tbody className="divide-y divide-gray-50">
             {loading ? (
               <tr>
-                <td colSpan="11" className="py-12 text-center text-gray-500 font-medium">Loading coupons...</td>
+                <td colSpan="12" className="py-12 text-center text-gray-500 font-medium">Loading coupons...</td>
               </tr>
             ) : filteredCoupons.length === 0 ? (
               <tr>
-                <td colSpan="11" className="py-20 text-center">
+                <td colSpan="12" className="py-20 text-center">
                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4 text-gray-300 shadow-inner">
                      <Tag size={28} />
                    </div>
@@ -577,6 +663,29 @@ export default function AdminCoupons() {
                       <span className="font-bold text-gray-900 tracking-wide uppercase group-hover:text-brand transition-colors">
                         {coupon.couponId}
                       </span>
+                      {!String(coupon.id || "").startsWith("temp-") && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              await copyTextToClipboard(coupon.couponId);
+                              showInfoPopup(`Coupon ${coupon.couponId} copied to clipboard.`, {
+                                type: "success",
+                                title: "Coupon copied",
+                              });
+                            } catch {
+                              showInfoPopup("Clipboard access was blocked by the browser.", {
+                                title: "Copy coupon manually",
+                              });
+                            }
+                          }}
+                          className="rounded p-1 text-gray-400 hover:bg-indigo-50 hover:text-brand"
+                          aria-label={`Copy coupon ${coupon.couponId}`}
+                          title="Copy coupon code"
+                        >
+                          <Copy size={14} />
+                        </button>
+                      )}
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -605,6 +714,11 @@ export default function AdminCoupons() {
                   </td>
                   <td className="py-4 px-6 text-gray-700 font-medium">
                     Rs {Number(coupon.minPurchaseAmount || 0).toLocaleString("en-IN")}
+                  </td>
+                  <td className="py-4 px-6 text-gray-700 font-medium">
+                    {Number(coupon.maxPurchaseAmount || 0) > 0
+                      ? `Rs ${Number(coupon.maxPurchaseAmount).toLocaleString("en-IN")}`
+                      : "No limit"}
                   </td>
                   <td className="py-4 px-6">
                     <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-700 font-bold border border-gray-200 shadow-sm">
@@ -685,10 +799,45 @@ export default function AdminCoupons() {
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Coupon ID</label>
-                <div className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm text-gray-500">
-                  {editingId ? form.couponId : "Generated automatically after save"}
-                </div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Coupon Code</label>
+                {editingId ? (
+                  <div className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm font-mono text-gray-600">
+                    {form.couponId}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <select
+                      value={form.codeMode}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          codeMode: e.target.value,
+                          couponId: e.target.value === "auto" ? "" : form.couponId,
+                        })
+                      }
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-brand bg-white"
+                    >
+                      <option value="auto">Generate automatically</option>
+                      <option value="custom">Create custom code</option>
+                    </select>
+                    {form.codeMode === "custom" ? (
+                      <input
+                        required
+                        value={form.couponId}
+                        onChange={(e) =>
+                          setForm({ ...form, couponId: normalizeCouponCode(e.target.value) })
+                        }
+                        maxLength={32}
+                        placeholder="Example: FESTIVE20"
+                        className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono uppercase focus:outline-brand"
+                      />
+                    ) : (
+                      <div className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-xs text-gray-500">
+                        The final code will be generated and copied after saving.
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -811,6 +960,25 @@ export default function AdminCoupons() {
                 />
                 <p className="mt-1 text-[11px] text-gray-500">
                   Coupon applies only when eligible cart value reaches this amount.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Maximum Purchase Amount
+                </label>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.maxPurchaseAmount}
+                  onChange={(e) => setForm({ ...form, maxPurchaseAmount: e.target.value })}
+                  placeholder="300"
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-brand"
+                />
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Coupon is rejected above this eligible cart value. Enter 0 for no maximum.
                 </p>
               </div>
 

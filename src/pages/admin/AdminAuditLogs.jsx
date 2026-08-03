@@ -121,7 +121,7 @@ export default function AdminAuditLogs() {
   return (
     <div className="space-y-6 max-w-full">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
+      <div className="admin-compact-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10">
           <Editable as="h1" id="admin-audit-heading" kind="button" label="Audit Logs Heading" className="font-display font-bold text-3xl md:text-4xl text-white tracking-tight mb-2 flex items-center gap-3">

@@ -6,6 +6,8 @@ import { selectCategories } from "../../store/categoriesSlice";
 import { fileToCompressedDataUrl } from "../../utils/imageUtils";
 import Editable from "../../components/editable/Editable";
 import { getCategoryDisplayName } from "../../utils/categoryDisplay";
+import { festivals } from "../../data/festivals";
+import { seasons } from "../../data/seasons";
 
 const ImageEditorModal = lazy(() => import("../../components/ImageEditorModal"));
 
@@ -19,7 +21,7 @@ const emptyForm = {
   variantOptions: [],
   highlights: "",
   description: "",
-  stock: "100",
+  stock: "",
   bestseller: false,
   styles: defaultProductStyles,
 };
@@ -123,6 +125,27 @@ const FontButton = ({ onClick, label }) => (
 
 const LOW_STOCK_LIMIT = 5;
 const PAGE_SIZE = 10;
+const monthOptions = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+const formatWindowLabel = (item) => {
+  if (!item?.start || !item?.end) return "";
+  const startMonth = monthOptions[item.start.month] || "";
+  const endMonth = monthOptions[item.end.month] || "";
+  return `${startMonth} ${item.start.day} - ${endMonth} ${item.end.day}`;
+};
 
 const getDateKey = (value) => {
   if (!value) return "";
@@ -189,6 +212,8 @@ export default function AdminProducts() {
   }, [currentPage]);
   const isFirstRenderForPage = useRef(true);
   const [exporting, setExporting] = useState(false);
+  const seasonById = new Map(seasons.map((season) => [season.id, season]));
+  const festivalById = new Map(festivals.map((festival) => [festival.id, festival]));
 
   const pendingDeleteIds = new Set(pendingDeletes);
   const pendingChangesCount =
@@ -211,9 +236,13 @@ export default function AdminProducts() {
     .filter(p => {
       const query = searchQuery.toLowerCase();
       const catName = getCategoryDisplayName(p, categories);
+      const seasonName = seasonById.get(p.season)?.name || "";
+      const festivalName = festivalById.get(p.festival)?.name || "";
       const matchesSearch = p.name.toLowerCase().includes(query) ||
         catName.toLowerCase().includes(query) ||
-        (p.brand && p.brand.toLowerCase().includes(query));
+        (p.brand && p.brand.toLowerCase().includes(query)) ||
+        seasonName.toLowerCase().includes(query) ||
+        festivalName.toLowerCase().includes(query);
       const matchesStock = stockFilter === "all" || getStockStatus(p) === stockFilter;
       const matchesDate = !dateFilter || getDateKey(p.createdAt || p.updatedAt) === dateFilter;
 
@@ -267,6 +296,26 @@ export default function AdminProducts() {
           value: (product) => getCategoryDisplayName(product, categories),
         },
         { header: "Brand", width: 20, value: (product) => product.brand || "" },
+        {
+          header: "Season",
+          width: 18,
+          value: (product) => seasonById.get(product.season)?.name || "",
+        },
+        {
+          header: "Season Dates",
+          width: 26,
+          value: (product) => formatWindowLabel(seasonById.get(product.season)),
+        },
+        {
+          header: "Festival",
+          width: 24,
+          value: (product) => festivalById.get(product.festival)?.name || "",
+        },
+        {
+          header: "Festival Dates",
+          width: 26,
+          value: (product) => formatWindowLabel(festivalById.get(product.festival)),
+        },
         { header: "Selling Price", width: 16, value: (product) => Number(product.price) || 0 },
         { header: "MRP", width: 14, value: (product) => Number(product.mrp) || Number(product.price) || 0 },
         {
@@ -322,7 +371,7 @@ export default function AdminProducts() {
         : [],
       highlights: p.highlights ? p.highlights.join("\n") : "",
       description: p.description,
-      stock: String(p.stock || 100),
+      stock: String(p.stock ?? ""),
       bestseller: Boolean(p.bestseller),
       styles: normalizeProductStyles(p.styles),
     });
@@ -396,6 +445,38 @@ export default function AdminProducts() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const price = Number(form.price);
+    const mrp = form.mrp === "" ? price : Number(form.mrp);
+    const stock = Number(form.stock);
+
+    if (!Number.isFinite(price) || price < 0) {
+      alert("Price cannot be negative.");
+      return;
+    }
+    if (!Number.isFinite(mrp) || mrp < 0) {
+      alert("MRP cannot be negative.");
+      return;
+    }
+    if (!Number.isInteger(stock) || stock < 0) {
+      alert("Stock must be a non-negative whole number.");
+      return;
+    }
+
+    const invalidVariant = form.variantOptions?.find((option) => {
+      const variantPrice = Number(option.price);
+      const variantMrp = option.mrp === "" ? variantPrice : Number(option.mrp);
+      return (
+        !Number.isFinite(variantPrice) ||
+        variantPrice < 0 ||
+        !Number.isFinite(variantMrp) ||
+        variantMrp < 0
+      );
+    });
+    if (invalidVariant) {
+      alert(`Price and MRP for ${invalidVariant.name} cannot be negative.`);
+      return;
+    }
+
     if (!form.description.trim()) {
       alert("Please enter a product description.");
       return;
@@ -411,9 +492,9 @@ export default function AdminProducts() {
     const categoryName = categories.find((category) => category.id === form.category)?.name || "";
     const payload = {
       ...form,
-      price: Number(form.price),
-      mrp: Number(form.mrp) || Number(form.price),
-      stock: Number(form.stock) || 0,
+      price,
+      mrp,
+      stock,
       bestseller: Boolean(form.bestseller),
       categoryName,
       variants: form.variantOptions && form.variantOptions.length > 0 ? [{ 
@@ -547,7 +628,7 @@ export default function AdminProducts() {
   return (
     <div className="space-y-6 max-w-full">
       {/* Premium Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
+      <div className="admin-compact-header relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-900 via-brand to-purple-900 p-8 shadow-2xl">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 mix-blend-overlay"></div>
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
@@ -625,7 +706,6 @@ export default function AdminProducts() {
                 className="bg-white border border-gray-200 text-gray-900 text-sm rounded-xl focus:ring-2 focus:ring-brand/20 focus:border-brand block w-full pl-10 p-2.5 transition-all outline-none shadow-sm hover:border-gray-300"
               />
             </div>
-            
             <div className="flex gap-3 w-full sm:w-auto">
               <select
                 value={sortFilter}
@@ -683,12 +763,14 @@ export default function AdminProducts() {
         className="bg-white rounded-md shadow-card overflow-x-auto"
       >
         <div className="overflow-x-auto p-0">
-          <table className="w-full text-sm min-w-[950px]">
+          <table className="w-full text-sm min-w-[1250px]">
             <thead>
               <tr className="text-left bg-gray-50/50">
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs w-16">#</Editable>
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Product Details</Editable>
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Category</Editable>
+                <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Season</Editable>
+                <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Festival</Editable>
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs">Pricing</Editable>
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs text-center">Status</Editable>
                 <Editable as="th" group="admin-products-col-header" kind="button" label="Column Header" className="py-4 px-6 font-bold text-gray-500 uppercase tracking-wider text-xs text-right">Actions</Editable>
@@ -735,6 +817,34 @@ export default function AdminProducts() {
                     </span>
                   </Editable>
                   <td className="py-4 px-6">
+                    {p.season ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="w-max rounded-lg border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700">
+                          {seasonById.get(p.season)?.name || p.season}
+                        </span>
+                        <span className="text-[11px] font-medium text-gray-500">
+                          {formatWindowLabel(seasonById.get(p.season))}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-400">No Season</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-6">
+                    {p.festival ? (
+                      <div className="flex flex-col gap-1">
+                        <span className="w-max rounded-lg border border-amber-100 bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-700">
+                          {festivalById.get(p.festival)?.name || p.festival}
+                        </span>
+                        <span className="text-[11px] font-medium text-gray-500">
+                          {formatWindowLabel(festivalById.get(p.festival))}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs font-medium text-gray-400">No Festival</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-6">
                     <div className="flex flex-col items-start gap-1">
                       <Editable as="span" group="admin-products-price" kind="button" label="Product Price" className="text-gray-900 font-bold text-base">
                         ₹{p.price.toLocaleString("en-IN")}
@@ -770,7 +880,7 @@ export default function AdminProducts() {
               ))}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="py-20 text-center">
+                  <td colSpan="8" className="py-20 text-center">
                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-50 mb-4 text-gray-300 shadow-inner">
                        <Search size={28} />
                      </div>
@@ -862,6 +972,8 @@ export default function AdminProducts() {
                 <input
                   required
                   type="number"
+                  min="0"
+                  step="1"
                   placeholder="Stock"
                   value={form.stock}
                   onChange={(e) => setForm({ ...form, stock: e.target.value })}
@@ -872,6 +984,8 @@ export default function AdminProducts() {
                 <input
                   required
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="Price (₹)"
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
@@ -879,6 +993,8 @@ export default function AdminProducts() {
                 />
                 <input
                   type="number"
+                  min="0"
+                  step="0.01"
                   placeholder="MRP (₹)"
                   value={form.mrp}
                   onChange={(e) => setForm({ ...form, mrp: e.target.value })}
@@ -887,6 +1003,8 @@ export default function AdminProducts() {
                 <div className="flex items-center gap-1 shrink-0">
                   <input
                     type="number"
+                    min="0"
+                    max="99"
                     placeholder="%"
                     value={
                       Number(form.mrp) > Number(form.price) && Number(form.price) > 0
@@ -944,6 +1062,8 @@ export default function AdminProducts() {
                         
                         <input
                           type="number"
+                          min="0"
+                          step="0.01"
                           placeholder="Price (₹)"
                           value={opt.price}
                           onChange={(e) => {
@@ -955,6 +1075,8 @@ export default function AdminProducts() {
                         />
                         <input
                           type="number"
+                          min="0"
+                          step="0.01"
                           placeholder="MRP (₹)"
                           value={opt.mrp}
                           onChange={(e) => {
@@ -968,6 +1090,8 @@ export default function AdminProducts() {
                         <div className="flex items-center gap-1 shrink-0">
                           <input
                             type="number"
+                            min="0"
+                            max="99"
                             placeholder="%"
                             value={
                               Number(opt.mrp) > Number(opt.price) && Number(opt.price) > 0
