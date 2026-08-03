@@ -59,14 +59,14 @@ const navGroups = [
   }
 ];
 
-const NavGroup = ({ group, groupIdx, setSidebarOpen }) => {
-  const [isOpen, setIsOpen] = useState(true);
-  
+const NavGroup = ({ group, isOpen, onToggle, setSidebarOpen }) => {
   return (
-    <div key={groupIdx} className="mb-1">
-      <div 
-        className="flex items-center justify-between cursor-pointer group/title mb-2 ml-2 pr-2 py-1"
-        onClick={() => setIsOpen(!isOpen)}
+    <div className="mb-1">
+      <button
+        type="button"
+        className="group/title mb-2 flex w-full items-center justify-between py-1 pl-2 pr-2 text-left"
+        onClick={onToggle}
+        aria-expanded={isOpen}
       >
         <h3 className="text-xs font-semibold text-white/70 uppercase tracking-widest group-hover/title:text-white transition-colors">
           {group.title}
@@ -75,7 +75,7 @@ const NavGroup = ({ group, groupIdx, setSidebarOpen }) => {
           size={16} 
           className={`text-white/50 group-hover/title:text-white transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
         />
-      </div>
+      </button>
       <div className={`flex flex-col gap-1.5 overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[500px] opacity-100 mb-2' : 'max-h-0 opacity-0 mb-0'}`}>
         {group.items.map((item) => (
           <NavLink
@@ -117,6 +117,7 @@ export default function AdminLayout() {
   const displayName = getUserDisplayName(user);
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openNavGroup, setOpenNavGroup] = useState("Catalog");
   const editMode = useSelector(selectEditMode);
 
   // ── New User Notification State (Today's Count + Live Toast) ──
@@ -266,8 +267,18 @@ export default function AdminLayout() {
         label="Admin Sidebar Nav Background"
         className="flex-1 px-4 py-6 flex flex-col gap-6 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent"
       >
-        {navGroups.map((group, groupIdx) => (
-          <NavGroup key={groupIdx} group={group} groupIdx={groupIdx} setSidebarOpen={setSidebarOpen} />
+        {navGroups.map((group) => (
+          <NavGroup
+            key={group.title}
+            group={group}
+            isOpen={openNavGroup === group.title}
+            onToggle={() =>
+              setOpenNavGroup((current) =>
+                current === group.title ? null : group.title,
+              )
+            }
+            setSidebarOpen={setSidebarOpen}
+          />
         ))}
       </Editable>
 

@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import Editable from "../components/editable/Editable";
-import { useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { resetPassword } from "../store/authSlice";
 import { showErrorPopup } from "../utils/notificationCenter";
@@ -14,8 +13,18 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const [token] = useState(
+    () => new URLSearchParams(window.location.search).get("token") || "",
+  );
+
+  useEffect(() => {
+    if (!window.location.search) return;
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${window.location.pathname}${window.location.hash}`,
+    );
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -21,7 +21,29 @@ import couponReducer from "./couponSlice";
 import footerReducer from "./footerSlice";
 import aboutPageReducer from "./aboutPageSlice";
 
-const channel = new BroadcastChannel('app_state_sync');
+const channel = typeof BroadcastChannel === "undefined"
+  ? null
+  : new BroadcastChannel("app_state_sync");
+
+const syncedActionTypes = new Set([
+  "auth/logoutUser",
+  "cart/clearCartSession",
+  "wishlist/clearWishlist",
+  "theme/setBgColor",
+  "theme/resetBgColor",
+]);
+
+const isSafeSyncedAction = (action) => {
+  if (!action || typeof action !== "object" || !syncedActionTypes.has(action.type)) {
+    return false;
+  }
+
+  if (action.type === "theme/setBgColor") {
+    return typeof action.payload === "string" && /^#[\da-f]{6}$/i.test(action.payload);
+  }
+
+  return action.payload === undefined;
+};
 
 const syncMiddleware = () => (next) => (action) => {
   // If the action came from another tab, process it normally without rebroadcasting
@@ -33,8 +55,8 @@ const syncMiddleware = () => (next) => (action) => {
   const result = next(action);
 
   // Broadcast local actions to other tabs (ignore internal Redux actions)
-  if (action.type && !action.type.startsWith('@@')) {
-    channel.postMessage(action);
+  if (channel && isSafeSyncedAction(action)) {
+    channel.postMessage({ type: action.type, payload: action.payload });
   }
 
   return result;
@@ -71,12 +93,13 @@ export const store = configureStore({
 });
 
 // Listen for actions from other tabs and dispatch them locally
-channel.onmessage = (event) => {
+if (channel) channel.onmessage = (event) => {
   const action = event.data;
-  if (action && action.type) {
+  if (isSafeSyncedAction(action)) {
     store.dispatch({
-      ...action,
-      meta: { ...action.meta, fromChannel: true }
+      type: action.type,
+      payload: action.payload,
+      meta: { fromChannel: true },
     });
   }
 };

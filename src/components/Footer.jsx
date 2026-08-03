@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchPolicies, selectAllPolicies } from "../store/policySlice";
 import { fetchFooterSettings, selectFooterSettings } from "../store/footerSlice";
 import Editable from "./editable/Editable";
+import { toSafeExternalUrl, toSafeNavigationUrl } from "../utils/safeUrl";
 
 const badgeIcons = {
   shield: ShieldCheck,
@@ -32,16 +33,18 @@ const isHiddenPolicyLink = (link = {}) => {
 };
 
 const FooterLink = ({ to, children, className }) => {
-  if (isExternalLink(to)) {
+  const safeTo = toSafeNavigationUrl(to);
+
+  if (isExternalLink(safeTo)) {
     return (
-      <a href={to} target="_blank" rel="noopener noreferrer" className={className}>
+      <a href={safeTo} target="_blank" rel="noopener noreferrer" className={className}>
         {children}
       </a>
     );
   }
 
   return (
-    <Link to={to} className={className}>
+    <Link to={safeTo} className={className}>
       {children}
     </Link>
   );
@@ -85,6 +88,10 @@ export default function Footer() {
   const contact = footerSettings.contact || {};
   const phoneHref = `tel:${String(contact.phone || "").replace(/[^\d+]/g, "")}`;
   const mailHref = `mailto:${contact.email || ""}`;
+  const mapHref = toSafeExternalUrl(
+    contact.mapUrl,
+    "https://www.google.com/maps/search/?api=1&query=IDPL+Rishikesh+Uttarakhand",
+  );
 
   const handleSubscribe = (e) => {
     e.preventDefault();
@@ -150,7 +157,7 @@ export default function Footer() {
             </li>
             <li>
               <a
-                href={contact.mapUrl}
+                href={mapHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-2 hover:text-white transition-colors"
